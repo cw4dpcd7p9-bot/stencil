@@ -1,0 +1,486 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>stencil</title>
+  <style>
+    :root {
+      --bg: #0c0c0e;
+      --panel: #141417;
+      --line: #2a2a30;
+      --ink: #ece7dc;
+      --mute: #8a867c;
+      --accent: #e8ff47;
+      --warn: #ff6b4a;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.45 ui-sans-serif, system-ui, sans-serif; }
+    button, input, textarea, select { font: inherit; color: inherit; }
+    button { cursor: pointer; }
+    header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 20px; border-bottom: 1px solid var(--line);
+    }
+    header b { letter-spacing: .16em; font-size: 12px; }
+    header span { color: var(--mute); font-size: 12px; }
+    .wrap {
+      display: grid;
+      grid-template-columns: 320px 1fr 340px;
+      min-height: calc(100vh - 49px);
+    }
+    @media (max-width: 1080px) { .wrap { grid-template-columns: 1fr; } }
+    aside, .stage, .rail { padding: 18px; }
+    aside, .rail { border-color: var(--line); border-style: solid; border-width: 0; }
+    aside { border-right-width: 1px; }
+    .rail { border-left-width: 1px; }
+    label { display: block; color: var(--mute); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; margin: 12px 0 6px; }
+    input, textarea, select {
+      width: 100%; background: var(--panel); border: 1px solid var(--line);
+      border-radius: 6px; padding: 8px 10px; outline: none;
+    }
+    textarea { min-height: 64px; resize: vertical; }
+    input:focus, textarea:focus, select:focus { border-color: #555; }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .swatches { display: flex; gap: 8px; align-items: center; }
+    .swatches input[type=color] { width: 42px; height: 32px; padding: 0; border: 0; background: none; }
+    .actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+    .btn {
+      background: var(--ink); color: #111; border: 0; border-radius: 6px;
+      padding: 8px 12px; font-weight: 650;
+    }
+    .btn.ghost { background: transparent; color: var(--ink); border: 1px solid var(--line); font-weight: 500; }
+    .btn:disabled { opacity: .4; cursor: default; }
+    .stage { display: flex; flex-direction: column; gap: 14px; align-items: center; }
+    .sizes { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
+    .sizes button {
+      background: transparent; border: 1px solid var(--line); color: var(--mute);
+      border-radius: 999px; padding: 4px 10px; font-size: 12px;
+    }
+    .sizes button.on { color: #111; background: var(--accent); border-color: var(--accent); }
+    .frame {
+      background: #09090b;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 16px;
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      overflow: auto;
+    }
+    canvas { max-width: 100%; height: auto; background: #000; box-shadow: 0 20px 60px #0008; }
+    .hint { color: var(--mute); font-size: 12px; }
+    .card {
+      background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
+      padding: 10px 12px; margin-bottom: 8px;
+    }
+    .card.on { border-color: var(--accent); }
+    .card .meta { display: flex; justify-content: space-between; color: var(--mute); font-size: 11px; margin-bottom: 6px; }
+    .card h3 { margin: 0 0 4px; font-size: 14px; font-weight: 650; }
+    .card p { margin: 0; color: #cfcabf; }
+    .card .cta { margin-top: 6px; color: var(--accent); font-size: 12px; }
+    .over { color: var(--warn); }
+    .ok { color: #8fd18f; }
+    h2 { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--mute); font-weight: 600; margin: 0 0 10px; }
+    .list { max-height: 42vh; overflow: auto; }
+    .saved { font-size: 12px; color: var(--mute); display: flex; justify-content: space-between; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--line); }
+    .saved button { background: none; border: 0; color: var(--mute); padding: 0; }
+    .saved button:hover { color: var(--ink); }
+  </style>
+</head>
+<body>
+  <header>
+    <b>STENCIL</b>
+    <span id="status">local studio</span>
+  </header>
+  <div class="wrap">
+    <aside>
+      <h2>Brief</h2>
+      <label>Product</label>
+      <input id="product" placeholder="HOUND" value="HOUND">
+      <label>Offer</label>
+      <textarea id="offer">Spot meme coins before the timeline does.</textarea>
+      <label>Audience</label>
+      <input id="audience" value="crypto natives who hate lagging Telegram calls">
+      <label>Pain</label>
+      <input id="pain" value="you hear about the runner after it already ran">
+      <label>Proof</label>
+      <input id="proof" value="live scanner, no waitlist theater">
+      <label>URL</label>
+      <input id="url" placeholder="https://">
+      <label>Tone</label>
+      <select id="tone">
+        <option value="dry">dry</option>
+        <option value="loud">loud</option>
+        <option value="calm">calm</option>
+        <option value="street">street</option>
+      </select>
+      <label>Paint</label>
+      <div class="swatches">
+        <input type="color" id="bg" value="#111114">
+        <input type="color" id="fg" value="#f4f0e6">
+        <input type="color" id="accent" value="#e8ff47">
+      </div>
+      <div class="actions">
+        <button class="btn" id="stamp">Stamp ads</button>
+        <button class="btn ghost" id="save">Save pack</button>
+        <button class="btn ghost" id="png">Download PNG</button>
+      </div>
+    </aside>
+    <section class="stage">
+      <div class="sizes" id="sizes"></div>
+      <div class="frame"><canvas id="board" width="1080" height="1080"></canvas></div>
+      <div class="hint" id="sizeHint">1080 × 1080 · Meta / IG feed</div>
+    </section>
+    <aside class="rail">
+      <h2>Copy</h2>
+      <div class="sizes" id="platforms"></div>
+      <div class="list" id="ads"></div>
+      <h2 style="margin-top:18px">Saved</h2>
+      <div id="saved"></div>
+    </aside>
+  </div>
+<script>
+const SIZES = {
+  square: { w: 1080, h: 1080, label: "square", note: "1080 × 1080 · Meta / IG feed" },
+  story:  { w: 1080, h: 1920, label: "story",  note: "1080 × 1920 · stories / reels / TikTok" },
+  land:   { w: 1200, h: 628,  label: "land",   note: "1200 × 628 · landscape / X / Google" },
+  banner: { w: 728,  h: 90,   label: "banner", note: "728 × 90 · display" },
+};
+const PLATFORMS = {
+  meta:    { label: "Meta",    h: 40,  p: 125, s: 30 },
+  google:  { label: "Google",  h: 30,  p: 90,  s: 90 },
+  tiktok:  { label: "TikTok",  h: 100, p: 80,  s: 40 },
+  x:       { label: "X",       h: 80,  p: 220, s: 0  },
+  youtube: { label: "YouTube", h: 100, p: 140, s: 0  },
+};
+const ANGLES = ["hook", "pain", "proof", "offer", "contrast"];
+const CTA = {
+  dry: ["Get in", "Open it", "See it", "Try it", "Start"],
+  loud: ["Run it", "Don't wait", "Jump in", "Go now", "Hit it"],
+  street: ["Pull up", "Tap in", "Lock in", "Run it back", "Get on"],
+  calm: ["Take a look", "Learn more", "Start here", "See how", "Get access"],
+};
+
+let state = {
+  size: "square",
+  platform: "meta",
+  ads: [],
+  selected: 0,
+};
+
+function $(id) { return document.getElementById(id); }
+function brief() {
+  return {
+    product: $("product").value.trim() || "the product",
+    offer: $("offer").value.trim() || "it works",
+    audience: $("audience").value.trim() || "people who need this",
+    pain: $("pain").value.trim() || "the usual mess",
+    proof: $("proof").value.trim() || "it ships",
+    url: $("url").value.trim(),
+    tone: $("tone").value,
+  };
+}
+function clip(text, n) {
+  const t = text.replace(/\s+/g, " ").trim();
+  if (t.length <= n) return t;
+  return t.slice(0, Math.max(0, n - 1)).replace(/\s+\S*$/, "").trim();
+}
+function pick(list, i) { return list[i % list.length]; }
+
+function writeCopy(b) {
+  const p = b.product;
+  const lines = {
+    hook: {
+      h: [`${p} sees it first`, `Stop scrolling. ${p}.`, `${p} is the feed before the feed`],
+      p: [`${b.offer} Built for ${b.audience}.`, `If you still wait on group chats, ${p} is the cut.`],
+      s: [b.proof, b.offer],
+    },
+    pain: {
+      h: [clip(b.pain, 40) || `${p} exists because this sucks`, `You already missed it`],
+      p: [`${b.pain}. ${p} is the opposite of that.`, `${b.audience} should not have to refresh hope.`],
+      s: [b.offer, b.proof],
+    },
+    proof: {
+      h: [b.proof || `${p} is live`, `No theater. ${p}.`],
+      p: [`${b.proof}. ${b.offer}`, `${p} does the part other apps narrate.`],
+      s: [b.offer, "No waitlist. No costume."],
+    },
+    offer: {
+      h: [clip(b.offer, 40), `${p}: ${clip(b.offer, 28)}`],
+      p: [`${b.offer} That is the whole pitch.`, `${p} for ${b.audience}.`],
+      s: [b.proof, "Start with one scan."],
+    },
+    contrast: {
+      h: [`Not another dashboard`, `${p} vs the timeline`],
+      p: [`Group chats recap. ${p} catches. ${b.offer}`, `If it looks like every other tool, it is. This isn't.`],
+      s: [b.proof, b.pain],
+    },
+  };
+  const ads = [];
+  const ctas = CTA[b.tone] || CTA.dry;
+  let i = 0;
+  for (const angle of ANGLES) {
+    const pack = lines[angle];
+    ads.push({
+      angle,
+      platform: state.platform,
+      headline: pack.h[i % pack.h.length],
+      primary: pack.p[i % pack.p.length],
+      support: pack.s[i % pack.s.length],
+      cta: pick(ctas, i),
+    });
+    i += 1;
+  }
+  const limits = PLATFORMS[state.platform];
+  return ads.map((ad) => ({
+    ...ad,
+    headline: clip(ad.headline, limits.h),
+    primary: clip(ad.primary, limits.p),
+    support: limits.s ? clip(ad.support, limits.s) : "",
+    cta: clip(ad.cta, 18),
+  }));
+}
+
+function paint() {
+  const size = SIZES[state.size];
+  const canvas = $("board");
+  canvas.width = size.w;
+  canvas.height = size.h;
+  const ctx = canvas.getContext("2d");
+  const bg = $("bg").value;
+  const fg = $("fg").value;
+  const ac = $("accent").value;
+  const b = brief();
+  const ad = state.ads[state.selected] || { headline: b.product, primary: b.offer, cta: "Get in" };
+
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, size.w, size.h);
+
+  ctx.globalAlpha = 0.08;
+  for (let y = 0; y < size.h; y += 14) {
+    ctx.fillStyle = y % 28 === 0 ? ac : fg;
+    ctx.fillRect(0, y, size.w, 1);
+  }
+  ctx.globalAlpha = 1;
+
+  const pad = size.h < 200 ? 16 : Math.round(Math.min(size.w, size.h) * 0.08);
+  ctx.fillStyle = ac;
+  ctx.fillRect(pad, pad, Math.max(36, Math.round(size.w * 0.08)), 6);
+
+  ctx.fillStyle = fg;
+  ctx.font = `600 ${Math.max(11, Math.round(size.w * 0.018))}px ui-sans-serif, system-ui, sans-serif`;
+  ctx.fillText(b.product.toUpperCase(), pad, pad + (size.h < 200 ? 28 : 42));
+
+  const maxW = size.w - pad * 2;
+  const headSize = size.h < 200 ? 22 : Math.round(Math.min(size.w, size.h) * (state.size === "banner" ? 0.04 : 0.07));
+  ctx.font = `700 ${headSize}px ui-sans-serif, system-ui, sans-serif`;
+  const lines = wrap(ctx, ad.headline || b.product, maxW);
+  let y = size.h < 200 ? pad + 36 : Math.round(size.h * 0.38);
+  if (state.size === "story") y = Math.round(size.h * 0.42);
+  if (state.size === "banner") y = Math.round(size.h * 0.62);
+  lines.slice(0, state.size === "banner" ? 1 : 4).forEach((line) => {
+    ctx.fillText(line, pad, y);
+    y += headSize * 1.15;
+  });
+
+  if (state.size !== "banner") {
+    ctx.globalAlpha = 0.82;
+    ctx.font = `400 ${Math.round(headSize * 0.38)}px ui-sans-serif, system-ui, sans-serif`;
+    const body = wrap(ctx, ad.primary || b.offer, maxW).slice(0, 3);
+    body.forEach((line) => {
+      ctx.fillText(line, pad, y);
+      y += headSize * 0.48;
+    });
+    ctx.globalAlpha = 1;
+  }
+
+  const cta = (ad.cta || "Get in").toUpperCase();
+  ctx.font = `700 ${Math.max(11, Math.round(size.w * 0.022))}px ui-sans-serif, system-ui, sans-serif`;
+  const tw = ctx.measureText(cta).width;
+  const bh = size.h < 200 ? 28 : Math.round(size.h * 0.055);
+  const bw = tw + (size.h < 200 ? 24 : 48);
+  const bx = pad;
+  const by = size.h - pad - bh;
+  ctx.fillStyle = ac;
+  ctx.fillRect(bx, by, bw, bh);
+  ctx.fillStyle = "#111";
+  ctx.fillText(cta, bx + (size.h < 200 ? 12 : 22), by + bh * 0.7);
+}
+
+function wrap(ctx, text, max) {
+  const words = String(text || "").split(/\s+/);
+  const lines = [];
+  let cur = "";
+  for (const word of words) {
+    const next = cur ? cur + " " + word : word;
+    if (ctx.measureText(next).width > max && cur) {
+      lines.push(cur);
+      cur = word;
+    } else cur = next;
+  }
+  if (cur) lines.push(cur);
+  return lines;
+}
+
+function renderAds() {
+  const box = $("ads");
+  const limits = PLATFORMS[state.platform];
+  box.innerHTML = "";
+  state.ads.forEach((ad, i) => {
+    const el = document.createElement("div");
+    el.className = "card" + (i === state.selected ? " on" : "");
+    const hc = ad.headline.length > limits.h ? "over" : "ok";
+    const pc = ad.primary.length > limits.p ? "over" : "ok";
+    el.innerHTML = `
+      <div class="meta"><span>${ad.angle}</span><span class="${hc}">${ad.headline.length}/${limits.h}</span></div>
+      <h3>${esc(ad.headline)}</h3>
+      <p>${esc(ad.primary)}</p>
+      ${ad.support ? `<p style="margin-top:4px;color:#8a867c">${esc(ad.support)} <span class="${pc}">${ad.primary.length}/${limits.p}</span></p>` : ""}
+      <div class="cta">${esc(ad.cta)}</div>`;
+    el.onclick = () => { state.selected = i; renderAds(); paint(); };
+    box.appendChild(el);
+  });
+}
+
+function esc(s) {
+  return String(s || "").replace(/[&<>"']/g, (c) => ({
+    "&":"&","<":"<",">":">","\"":""","'":"&#39;"
+  }[c]));
+}
+
+function stamp() {
+  state.ads = writeCopy(brief());
+  state.selected = 0;
+  renderAds();
+  paint();
+  $("status").textContent = "5 angles · " + PLATFORMS[state.platform].label;
+}
+
+async function savePack() {
+  const b = brief();
+  const payload = {
+    name: b.product.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "untitled",
+    brief: b,
+    ads: state.ads,
+    style: { bg: $("bg").value, fg: $("fg").value, accent: $("accent").value, size: state.size },
+  };
+  try {
+    const res = await fetch("/api/campaigns", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "save failed");
+    $("status").textContent = "saved " + data.id;
+    loadSaved();
+  } catch (err) {
+    downloadJson(payload);
+    $("status").textContent = "no server · downloaded json";
+  }
+}
+
+function downloadJson(payload) {
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = (payload.name || "stencil") + ".json";
+  a.click();
+}
+
+function downloadPng() {
+  const a = document.createElement("a");
+  a.href = $("board").toDataURL("image/png");
+  a.download = (brief().product || "ad") + "-" + state.size + ".png";
+  a.click();
+}
+
+async function loadSaved() {
+  const box = $("saved");
+  try {
+    const res = await fetch("/api/campaigns");
+    const data = await res.json();
+    const rows = data.campaigns || [];
+    if (!rows.length) { box.textContent = "none yet"; return; }
+    box.innerHTML = "";
+    rows.forEach((row) => {
+      const el = document.createElement("div");
+      el.className = "saved";
+      el.innerHTML = `<span>${esc(row.name)}</span><span><button data-load="${row.id}">open</button> <button data-del="${row.id}">x</button></span>`;
+      box.appendChild(el);
+    });
+    box.onclick = async (e) => {
+      const load = e.target.getAttribute("data-load");
+      const del = e.target.getAttribute("data-del");
+      if (load) {
+        const res = await fetch("/api/campaigns/" + load);
+        const row = await res.json();
+        apply(row);
+      }
+      if (del) {
+        await fetch("/api/campaigns/" + del, { method: "DELETE" });
+        loadSaved();
+      }
+    };
+  } catch {
+    box.textContent = "server offline · png/json still work";
+  }
+}
+
+function apply(row) {
+  const b = row.brief || {};
+  $("product").value = b.product || "";
+  $("offer").value = b.offer || "";
+  $("audience").value = b.audience || "";
+  $("pain").value = b.pain || "";
+  $("proof").value = b.proof || "";
+  $("url").value = b.url || "";
+  $("tone").value = b.tone || "dry";
+  if (row.style) {
+    $("bg").value = row.style.bg || $("bg").value;
+    $("fg").value = row.style.fg || $("fg").value;
+    $("accent").value = row.style.accent || $("accent").value;
+    if (row.style.size && SIZES[row.style.size]) state.size = row.style.size;
+  }
+  state.ads = row.ads || [];
+  state.selected = 0;
+  if (state.ads[0]) state.platform = state.ads[0].platform || state.platform;
+  markSizes();
+  renderAds();
+  paint();
+}
+
+function markSizes() {
+  [...$("sizes").children].forEach((btn) => btn.classList.toggle("on", btn.dataset.size === state.size));
+  [...$("platforms").children].forEach((btn) => btn.classList.toggle("on", btn.dataset.p === state.platform));
+  $("sizeHint").textContent = SIZES[state.size].note;
+}
+
+function boot() {
+  Object.entries(SIZES).forEach(([key, val]) => {
+    const btn = document.createElement("button");
+    btn.textContent = val.label;
+    btn.dataset.size = key;
+    btn.onclick = () => { state.size = key; markSizes(); paint(); };
+    $("sizes").appendChild(btn);
+  });
+  Object.entries(PLATFORMS).forEach(([key, val]) => {
+    const btn = document.createElement("button");
+    btn.textContent = val.label;
+    btn.dataset.p = key;
+    btn.onclick = () => { state.platform = key; stamp(); markSizes(); };
+    $("platforms").appendChild(btn);
+  });
+  $("stamp").onclick = stamp;
+  $("save").onclick = savePack;
+  $("png").onclick = downloadPng;
+  ["bg","fg","accent","product","offer"].forEach((id) => $(id).addEventListener("input", paint));
+  markSizes();
+  stamp();
+  loadSaved();
+}
+boot();
+</script>
+</body>
+</html>
